@@ -8,8 +8,8 @@ demean <- function(mat,class_df){
   return(mat2)
 }
 
-generate_all_interaction <- function(X_mat) {
-  dat <- X_mat
+generate_all_interaction <- function(mat) {
+  dat <- mat
   colnames(dat) <- 1:ncol(dat)
   do.call(cbind, combn(colnames(dat), 2, FUN= function(x)
     list(setNames(data.frame(dat[,x[1]]*dat[,x[2]]),
