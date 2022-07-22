@@ -5,7 +5,9 @@ Authors@R:
     person("Alec", "Chiu",email= "alecmchiu@ucla.edu", role = c("aut", "cre"))
 Depends: R (>= 3.5.0)
 Imports:
-    irlba
+    irlba stats
+Suggests:
+    mvtnorm
 Description: Functions that extend eigengene analysis to perform hypothesis testing to detect differences in variance or covariance between two groups on a given set of features. See paper for more details.
 License: MIT + file LICENSE
 Encoding: UTF-8
