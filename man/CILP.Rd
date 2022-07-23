@@ -7,13 +7,41 @@
 CILP(prod_mat, groupings)
 }
 \arguments{
-\item{prod_mat}{A matrix with all class-specific mean-removed pairwise interactions to be tested.}
+\item{prod_mat}{A matrix with all class-specific mean-removed pairwise
+interactions to be tested.}
 
-\item{groupings}{A numeric vector denoting class/group membership of the observations.}
+\item{groupings}{A numeric vector denoting class/group membership of the
+observations.}
 }
 \value{
-A matrix of effect size estimates and p-values for each feature pair.
+A data frame of effect size estimates and p-values for each feature
+pair.
 }
 \description{
-Run Correlation by Individual Level Product (CILP)
+Runs an efficient implementation of CILP from Lea et al. 2019. CILP detects
+differential correlation of pairwise features between two groups.
+}
+\examples{
+# Generate covariance matrix
+library(mvtnorm)
+
+cov_mats <- rWishart(2,10,diag(10))
+
+# Generate correlated data with means 1-10 and 10-1
+dat <- rbind(rmvnorm(100,mean=1:10,sigma=cov_mats[,,1]),rmvnorm(100,mean=10:1,sigma=cov_mats[,,2]))
+colnames(dat) <- LETTERS[1:10]
+
+# Create group vector
+groups <- c(rep(0,100),rep(1,100))
+
+# Remove mean from matrix
+centered_dat <- scale(dat,scale=FALSE)
+colMeans(centered_dat)
+
+# Generate pairwise matrix
+product_mat <- generate_all_interaction(centered_dat)
+
+# Run CILP
+res <- CILP(product_mat,groups)
+
 }

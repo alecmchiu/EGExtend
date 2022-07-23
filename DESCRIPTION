@@ -6,7 +6,8 @@ Authors@R:
 Depends: R (>= 3.5.0)
 Imports:
     irlba,
-    stats
+    stats,
+    utils
 Suggests:
     mvtnorm
 Description: Functions that extend eigengene analysis to perform hypothesis testing to detect differences in variance or covariance between two groups on a given set of features. See paper for more details.

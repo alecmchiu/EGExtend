@@ -7,11 +7,29 @@
 generate_squared_terms(mat)
 }
 \arguments{
-\item{mat}{A mean-removed matrix with observations (e.g. individuals) as rows and features as columns.}
+\item{mat}{A matrix with observations (e.g. individuals) as rows and features
+as columns.}
 }
 \value{
 A matrix with each column/feature squared.
 }
 \description{
-Generate squared matrix
+This function generates a matrix where the columns/features of the input
+matrix features have been squared. The new matrix will retain the dimensions
+of the input matrix. On a centered matrix, this function will turn the
+observations into observations of variance.
+}
+\examples{
+# Generate data
+obs <- sapply(1:10,function(x){rnorm(10000,mean=x,sd=x^2)})
+
+# Center matrix
+centered_obs <- scale(obs,scale=FALSE)
+
+# Generate squared matrix
+sq_obs <- generate_squared_terms(centered_obs)
+
+# Compare variance estimates
+colMeans(sq_obs)
+apply(obs,2,var)
 }

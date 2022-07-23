@@ -15,3 +15,14 @@ The eigengene of the input matrix.
 \description{
 Calculate eigengene
 }
+\examples{
+# Generate data
+obs <- rbind(sapply(1:10,function(x){rnorm(100,mean=x)}), 
+       sapply(10:1,function(x){rnorm(100,mean=x)}))
+
+# Calculate Eigengene
+eg <- calculateEigengene(obs)
+
+# Eigengene should reflect mean differences
+plot(eg,ylab='Eigengene Value')
+}

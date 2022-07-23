@@ -4,14 +4,45 @@
 \alias{generate_all_interaction}
 \title{Generate pairwise interaction matrix}
 \usage{
-generate_all_interaction(mat)
+generate_all_interaction(mat, delimiter = "_")
 }
 \arguments{
-\item{mat}{A mean-removed matrix with observations (e.g. individuals) as rows and features as columns.}
+\item{mat}{A matrix with observations (e.g. individuals) as rows and features
+as columns.}
+
+\item{delimiter}{A delimiter for the pairwise feature names.}
 }
 \value{
-A matrix with all pairwise interactions (pairwise column/feature products) from the input matrix.
+A matrix with all pairwise interactions (pairwise column/feature
+products) from the input matrix. Column names will show what features were
+used for the pariwise product.
 }
 \description{
-Generate pairwise interaction matrix
+This function generates a matrix where the columns/features are the pairwise
+products of the input matrix features. The new matrix will retain the same
+number of rows/observations, but have \emph{m} choose 2 columns for each pair
+of features, where \emph{m} is the number of features in the input matrix.
+When using this function where the mean has been removed, the feature/column
+means become observations of covariance.
+}
+\examples{
+# Generate covariance matrix
+library(mvtnorm)
+
+cov_mat <- rWishart(1,10,diag(10))[,,1]
+
+# Generate correlated data with means 1-10
+dat <- rmvnorm(100,mean=1:10,sigma=cov_mat)
+colnames(dat) <- LETTERS[1:10]
+
+# Remove mean from matrix
+centered_dat <- scale(dat,scale=FALSE)
+colMeans(centered_dat)
+
+# Generate pairwise matrix
+product_mat <- generate_all_interaction(centered_dat)
+
+# Check if covariance estimates are close
+colMeans(product_mat)
+cov(dat)[1:7,1:7]
 }

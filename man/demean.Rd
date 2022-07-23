@@ -15,5 +15,28 @@ demean(mat, class_df)
 A matrix with the class-specific mean removed from each observation in its appropriate group.
 }
 \description{
-Remove class-specific mean from each class in matrix
+Remove the class-specific mean for each feature/column.
+}
+\examples{
+
+# Generate 200 observation by 10 features matrix
+# 100 samples of class one with features means with 1-10
+# 100 samples of class two with feature means 10-1
+obs <- rbind(sapply(1:10,function(x){rnorm(100,mean=x)}), 
+       sapply(10:1,function(x){rnorm(100,mean=x)}))
+
+# Check feature means for each class
+colMeans(obs[1:100,])
+colMeans(obs[101:200,])
+
+# Create class data frame
+classes <- cbind(1:200,c(rep(0,100),rep(1,100)))
+colnames(classes) <- c('ID','Class')
+
+# Remove class-specific means from each group
+demean_obs <- demean(obs,classes)
+
+# Check if means are near 0 for each class
+colMeans(demean_obs[1:100,])
+colMeans(demean_obs[101:200,])
 }
