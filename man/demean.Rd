@@ -4,15 +4,21 @@
 \alias{demean}
 \title{Remove class-specific mean from each class in matrix}
 \usage{
-demean(mat, class_df)
+demean(matrix, class_df, scale = FALSE)
 }
 \arguments{
-\item{mat}{A matrix with observations (e.g. individuals) as rows and features as columns.}
+\item{matrix}{A matrix with observations (e.g. individuals) as rows and
+features as columns.}
 
-\item{class_df}{A data frame with two columns. The first columns are observation identifiers and the second column denotes class/group.}
+\item{class_df}{A data frame with two columns. The first columns are
+observation identifiers and the second column denotes class/group.}
+
+\item{scale}{A logical (TRUE/FALSE) determining whether variance should be
+scaled to one as well.}
 }
 \value{
-A matrix with the class-specific mean removed from each observation in its appropriate group.
+A matrix with the class-specific mean removed from each observation
+in its appropriate group.
 }
 \description{
 Remove the class-specific mean for each feature/column.
@@ -22,21 +28,27 @@ Remove the class-specific mean for each feature/column.
 # Generate 200 observation by 10 features matrix
 # 100 samples of class one with features means with 1-10
 # 100 samples of class two with feature means 10-1
-obs <- rbind(sapply(1:10,function(x){rnorm(100,mean=x)}), 
-       sapply(10:1,function(x){rnorm(100,mean=x)}))
+obs <- rbind(
+  sapply(1:10, function(x) {
+    rnorm(100, mean = x)
+  }),
+  sapply(10:1, function(x) {
+    rnorm(100, mean = x)
+  })
+)
 
 # Check feature means for each class
-colMeans(obs[1:100,])
-colMeans(obs[101:200,])
+colMeans(obs[1:100, ])
+colMeans(obs[101:200, ])
 
 # Create class data frame
-classes <- cbind(1:200,c(rep(0,100),rep(1,100)))
-colnames(classes) <- c('ID','Class')
+classes <- cbind(1:200, c(rep(0, 100), rep(1, 100)))
+colnames(classes) <- c("ID", "Class")
 
 # Remove class-specific means from each group
-demean_obs <- demean(obs,classes)
+demean_obs <- demean(obs, classes)
 
 # Check if means are near 0 for each class
-colMeans(demean_obs[1:100,])
-colMeans(demean_obs[101:200,])
+colMeans(demean_obs[1:100, ])
+colMeans(demean_obs[101:200, ])
 }

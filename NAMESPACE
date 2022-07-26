@@ -3,5 +3,5 @@
 export(CILP)
 export(calculateEigengene)
 export(demean)
-export(generate_all_interaction)
-export(generate_squared_terms)
+export(generate_interactions)
+export(generate_squared_matrix)

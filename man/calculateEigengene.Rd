@@ -13,16 +13,22 @@ calculateEigengene(mat)
 The eigengene of the input matrix.
 }
 \description{
-Calculate eigengene
+Calculates the eigengene for a given matrix. We use the \emph{irlba} package to efficiently calculate the eigengene using the Lanzcos algorithm. The eigengene is aligned to match the orientation of the input matrix and will retain the row names of the input matrix.
 }
 \examples{
 # Generate data
-obs <- rbind(sapply(1:10,function(x){rnorm(100,mean=x)}), 
-       sapply(10:1,function(x){rnorm(100,mean=x)}))
+obs <- rbind(
+  sapply(1:10, function(x) {
+    rnorm(100, mean = x)
+  }),
+  sapply(10:1, function(x) {
+    rnorm(100, mean = x)
+  })
+)
 
 # Calculate Eigengene
 eg <- calculateEigengene(obs)
 
 # Eigengene should reflect mean differences
-plot(eg,ylab='Eigengene Value')
+plot(eg, ylab = "Eigengene Value")
 }

@@ -3,10 +3,15 @@
 #'
 #' Remove the class-specific mean for each feature/column.
 #'
-#' @param mat A matrix with observations (e.g. individuals) as rows and features as columns.
-#' @param class_df A data frame with two columns. The first columns are observation identifiers and the second column denotes class/group.
+#' @param matrix A matrix with observations (e.g. individuals) as rows and
+#'   features as columns.
+#' @param class_df A data frame with two columns. The first columns are
+#'   observation identifiers and the second column denotes class/group.
+#' @param scale A logical (TRUE/FALSE) determining whether variance should be
+#'   scaled to one as well.
 #'
-#' @return A matrix with the class-specific mean removed from each observation in its appropriate group.
+#' @return A matrix with the class-specific mean removed from each observation
+#'   in its appropriate group.
 #' @export
 #'
 #' @examples
@@ -37,11 +42,14 @@
 #' # Check if means are near 0 for each class
 #' colMeans(demean_obs[1:100, ])
 #' colMeans(demean_obs[101:200, ])
-demean <- function(mat, class_df) {
-  mat2 <- mat
+demean <- function(matrix, class_df, scale=FALSE) {
+  if (ncol(class_df) != 2){
+    stop(sprintf("Class data frame does not conform to specifications."))
+  }
+  mat2 <- matrix
   for (each in unique(class_df[, 2])) {
     ids <- subset(class_df, class_df[, 2] == each)[, 1]
-    mat2[ids, ] <- scale(mat2[ids, ], scale = FALSE)
+    mat2[ids, ] <- scale(mat2[ids, ], scale = scale)
   }
   return(mat2)
 }
@@ -55,13 +63,16 @@ demean <- function(mat, class_df) {
 #' When using this function where the mean has been removed, the feature/column
 #' means become observations of covariance.
 #'
-#' @param mat A matrix with observations (e.g. individuals) as rows and features
-#'   as columns.
+#' @param matrix A matrix with observations (e.g. individuals) as rows and
+#'   features as columns.
 #' @param delimiter A delimiter for the pairwise feature names.
+#' @param interactions_df A two-column data frame of interactions to be
+#'   calculated. The first column denotes the first feature and the second
+#'   column denotes the second feature of the interaction.
 #'
 #' @return A matrix with all pairwise interactions (pairwise column/feature
 #'   products) from the input matrix. Column names will show what features were
-#'   used for the pariwise product.
+#'   used for the pairwise product.
 #' @export
 #'
 #' @examples
@@ -79,19 +90,37 @@ demean <- function(mat, class_df) {
 #' colMeans(centered_dat)
 #'
 #' # Generate pairwise matrix
-#' product_mat <- generate_all_interaction(centered_dat)
+#' product_mat <- generate_interactions(centered_dat)
 #'
 #' # Check if covariance estimates are close
-#' colMeans(product_mat)
-#' cov(dat)[1:7, 1:7]
-generate_all_interaction <- function(mat, delimiter = "_") {
-  dat <- mat
-  do.call(cbind, utils::combn(colnames(dat), 2, FUN = function(x) {
-    list(stats::setNames(
-      data.frame(dat[, x[1]] * dat[, x[2]]),
-      paste(x, collapse = delimiter)
-    ))
-  }))
+#' demean_est <- colSums(product_mat)/(nrow(product_mat)-1)
+#'
+#' samp_cov <- sapply(strsplit(colnames(product_mat),split="_"),function(x){cov(dat)[x[1],x[2]]})
+#' names(samp_cov) <- colnames(product_mat)
+#'
+#' head(demean_est)
+#' head(samp_cov)
+generate_interactions <- function(matrix, delimiter = "_", interactions_df = NA) {
+  if (length(colnames(matrix)) == 0){
+    stop(sprintf("Column names must be set."))
+  }
+  if (length(rownames(matrix)) == 0){
+    stop(sprintf("Row names must be set."))
+  }
+  if (all(is.na(interactions_df))){
+    res <- do.call(cbind, utils::combn(colnames(matrix), 2, FUN = function(x) {
+      list(stats::setNames(
+        data.frame(matrix[, x[1]] * matrix[, x[2]]),
+        paste(x, collapse = delimiter)
+      ))
+    }))
+  }
+  else{
+    res <- apply(interactions_df,1,function(x){matrix[,x[1]] * matrix[,x[2]]})
+    rownames(res) <- rownames(matrix)
+    colnames(res) <- apply(interactions_df,1,paste0,collapse=delimiter)
+  }
+  return(res)
 }
 
 #' Generate squared matrix
@@ -101,7 +130,7 @@ generate_all_interaction <- function(mat, delimiter = "_") {
 #' of the input matrix. On a centered matrix, this function will turn the
 #' observations into observations of variance.
 #'
-#' @param mat A matrix with observations (e.g. individuals) as rows and features
+#' @param matrix A matrix with observations (e.g. individuals) as rows and features
 #'   as columns.
 #'
 #' @return A matrix with each column/feature squared.
@@ -117,13 +146,13 @@ generate_all_interaction <- function(mat, delimiter = "_") {
 #' centered_obs <- scale(obs, scale = FALSE)
 #'
 #' # Generate squared matrix
-#' sq_obs <- generate_squared_terms(centered_obs)
+#' sq_obs <- generate_squared_matrix(centered_obs)
 #'
 #' # Compare variance estimates
-#' colMeans(sq_obs)
+#' colSums(sq_obs)/(nrow(sq_obs)-1)
 #' apply(obs, 2, var)
-generate_squared_terms <- function(mat) {
-  return(apply(mat, 2, function(x) {
+generate_squared_matrix <- function(matrix) {
+  return(apply(matrix, 2, function(x) {
     x^2
   }))
 }
@@ -152,19 +181,19 @@ generate_squared_terms <- function(mat) {
 #' dat <- rbind(rmvnorm(100, mean = 1:10, sigma = cov_mats[, , 1]), rmvnorm(100, mean = 10:1, sigma = cov_mats[, , 2]))
 #' colnames(dat) <- LETTERS[1:10]
 #'
-#' # Create group vector
-#' groups <- c(rep(0, 100), rep(1, 100))
+#' # Create group data frame
+#' groups <- cbind(1:100,c(rep(0, 100), rep(1, 100)))
 #'
-#' # Remove mean from matrix
-#' centered_dat <- scale(dat, scale = FALSE)
-#' colMeans(centered_dat)
+#' # Remove mean and rescale matrix
+#' rescaled_dat <- demean(dat,groups,scale = T)
+#' colMeans(rescaled_dat)
 #'
 #' # Generate pairwise matrix
-#' product_mat <- generate_all_interaction(centered_dat)
+#' product_mat <- generate_all_interaction(rescaled_dat)
 #'
 #' # Run CILP
-#' res <- CILP(product_mat, groups)
-#'
+#' res <- CILP(product_mat, groups[,2])
+#' 
 CILP <- function(prod_mat, groupings) {
   pvals <- apply(prod_mat, 2, function(x) {
     ctest <- stats::cor.test(scale(x), groupings)
@@ -176,8 +205,10 @@ CILP <- function(prod_mat, groupings) {
 }
 
 #' Calculate eigengene
+#' 
+#' Calculates the eigengene for a given matrix. We use the \emph{irlba} package to efficiently calculate the eigengene using the Lanzcos algorithm. The eigengene is aligned to match the orientation of the input matrix and will retain the row names of the input matrix.
 #'
-#' @param mat A matrix for which the eigengene is to be calculated.
+#' @param matrix A matrix for which the eigengene is to be calculated.
 #'
 #' @return The eigengene of the input matrix.
 #' @export
@@ -198,10 +229,10 @@ CILP <- function(prod_mat, groupings) {
 #'
 #' # Eigengene should reflect mean differences
 #' plot(eg, ylab = "Eigengene Value")
-calculateEigengene <- function(mat) {
-  eigengene <- irlba::irlba(scale(mat), nv = 1)$u
-  rownames(eigengene) <- rownames(mat)
-  avg_expr <- rowMeans(mat)
+calculateEigengene <- function(matrix) {
+  eigengene <- irlba::irlba(scale(matrix), nv = 1)$u
+  rownames(eigengene) <- rownames(matrix)
+  avg_expr <- rowMeans(matrix)
   if (stats::cor(avg_expr, eigengene[, 1]) < 0) {
     eigengene[, 1] <- -eigengene[, 1]
   }
