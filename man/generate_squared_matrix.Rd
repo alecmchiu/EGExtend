@@ -4,10 +4,10 @@
 \alias{generate_squared_matrix}
 \title{Generate squared matrix}
 \usage{
-generate_squared_matrix(mat)
+generate_squared_matrix(matrix)
 }
 \arguments{
-\item{mat}{A matrix with observations (e.g. individuals) as rows and features
+\item{matrix}{A matrix with observations (e.g. individuals) as rows and features
 as columns.}
 }
 \value{
@@ -19,6 +19,9 @@ matrix features have been squared. The new matrix will retain the dimensions
 of the input matrix. On a centered matrix, this function will turn the
 observations into observations of variance.
 }
+\details{
+#' Using the squared matrix with the demean function allows one to estimate variance. This relies on the fact that \code{Var(X) = E[X^2]-E[X]^2}, but by removing means, we eliminate the second term.
+}
 \examples{
 # Generate data
 obs <- sapply(1:10, function(x) {
@@ -29,9 +32,12 @@ obs <- sapply(1:10, function(x) {
 centered_obs <- scale(obs, scale = FALSE)
 
 # Generate squared matrix
-sq_obs <- generate_squared_terms(centered_obs)
+sq_obs <- generate_squared_matrix(centered_obs)
 
 # Compare variance estimates
-colMeans(sq_obs)
+colSums(sq_obs)/(nrow(sq_obs)-1)
 apply(obs, 2, var)
+}
+\seealso{
+\code{\link[stats:cor]{stats::var()}}
 }

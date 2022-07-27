@@ -1,0 +1,277 @@
+---
+title: "Differential testing using eigengene analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Differential testing using eigengene analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align="center",
+  fig.width=6, 
+  fig.height=5
+)
+```
+
+We created the EGExtend package to help researchers test for variance and covariance differences between discrete groups on sets of features. We do this by using univariate testing techniques (*i.e. t*-test) on the [eigengene](https://bmcsystbiol.biomedcentral.com/articles/10.1186/1752-0509-1-54), which is defined as the first principal component. The idea of using this framework to test for differential mean gene expression has been utilized by popular software such as [Weighted Gene Co-Expression Network Analysis (WGCNA)](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-9-559). EGExtend furthers the concept of eigengene testing to also detect differential variance and covariance differences. We will go over how to use our package to perform differential hypothesis testing for mean, variance, and covariance differences.
+
+Eigengene testing relies on principal component analysis (PCA) to create a one-dimensional representation of a matrix. This eigengene is then used for downstream univariate testing. Let's first explore how to perform how to calculate eigengenes.
+
+# Mean Eigengene Calculation
+
+```{r setup}
+library(EGExtend)
+```
+
+Let's first generate some data.
+
+```{r Mean Eigengene Part 1 - Data Generation}
+set.seed(0)
+
+# Generate data
+obs <- rbind(sapply(1:10, function(x) {
+  rnorm(100, mean = x, sd = x)
+}),
+sapply(10:1, function(x) {
+  rnorm(100, mean = x, sd = x)
+}))
+colnames(obs) <- LETTERS[1:10]
+rownames(obs) <- 1:200
+
+# Create class matrix
+classes <- cbind(1:100, c(rep(0, 100), rep(1, 100)))
+colnames(classes) <- c("ID","Class")
+```
+
+This simulated creates 200 observations and 10 features belonging to two groups (100 observations each). The first group has means, 1-10, for each feature, respectively. Each of these features additionally has standard deviations from 1-10, respectively. The second group has the reverse of means and standard deviations, 10 to 1, for each feature, respectively.
+
+We next will calculate the eigengene. Our function `calculateEigengene` utilizes fast approximation techniques to efficiently calculate the eigengene.
+
+```{r Mean Eigengene Part 2 - Eigengene Calculation}
+# Calculate Eigengene
+eg <- calculateEigengene(obs)
+```
+
+We can now view the eigengene for mean differences.
+
+```{r Mean Eigengene Part 3 - Eigengene Plotting}
+plot(
+  x = eg[, 1],
+  y = rnorm(200),
+  pch = 16,
+  col = c('red', 'blue')[classes[, 2] + 1],
+  xlab = "Eigengene Value",
+  ylab = "",
+  yaxt = "n"
+)
+```
+
+In this simple scatterplot, we can see the blue class tends to have one side while the red class tends to other.
+
+# Variance Eigengene Calculation
+
+We will now perform an eigengene test for variance by generating data with no difference in means, but different variances. Let's additionally run the standard eigengene calculation for mean differences.
+
+```{r Variance Eigengene Part 1 - Mean Eigengene}
+set.seed(0)
+
+# Generate data and class data frame
+obs <- rbind(sapply(1:10, function(x) {
+  rnorm(100, mean = 0, sd = x)
+}),
+sapply(10:1, function(x) {
+  rnorm(100, mean = 0, sd = x)
+}))
+
+classes <- cbind(1:100, c(rep(0, 100), rep(1, 100)))
+
+# Calculate Eigengene
+eg <- calculateEigengene(obs)
+
+plot(
+  x = eg[, 1],
+  y = rnorm(200),
+  pch = 16,
+  col = c('red', 'blue')[classes[, 2] + 1],
+  xlab = "Eigengene Value",
+  ylab = "",
+  yaxt = "n"
+)
+```
+
+We don't see any difference between the blue and green points in the scatterplot as expected since there is no difference in mean. To detect the difference in variance, we must perform a few transformations before calculating the eigengene.
+
+```{r Variance Eigengene Part 2 - Transformation}
+# Remove the class-specific means from each class
+centered_obs <- demean(obs,classes)
+
+# Transform the observations by squaring them
+sq_centered_obs <- generate_squared_matrix(centered_obs)
+```
+
+First, we remove the mean from each class by using the `demean` function. We then generate the squared matrix, which estimates variance when there is no mean. This utilizes the relationship that $Var(X) = E[X^2] - E[X]^2$, so by removing the mean, squaring the observations will result in observations that are samples of the variance. Let us now calculate the variance eigengene. The explicit removal of the mean also gives us the ability to detect variance differences even when there are mean differences.
+
+```{r Variance Eigengene Part 3 - Visualization}
+var_eg <- calculateEigengene(sq_centered_obs)
+plot(
+  x = var_eg[, 1],
+  y = rnorm(200),
+  pch = 16,
+  col = c('red', 'blue')[classes[, 2] + 1],
+  xlab = "Eigengene Value",
+  ylab = "",
+  yaxt = "n"
+)
+```
+
+We can now see that the eigengene separates the two groups in a similar fashion as our previous example of using the mean eigengene for differences.
+
+# Covariance Eigengene Calculation
+
+To calculate differences in covariance (or correlation, which is a scaled version of covariance), we must simulate data with a covariance structure. We will use the Wishart distribution to generate two positive semi-definite matrices to be used as covariances matrices of two multivariate normals. We will sample from the multivariate normal using the `mvtnorm` package.
+
+```{r Covariance Eigengene Part 1 - Data Generation}
+set.seed(0)
+library(mvtnorm)
+
+# Generate covariance matrices
+cov_mats <- rWishart(2, 10, diag(10))
+
+# Convert to correlation matrix to remove variance differences
+cor_mats <- apply(cov_mats, 3, cov2cor, simplify = F)
+
+# Generate correlated data with means 1-10 and 10-1
+dat <-
+  rbind(rmvnorm(500, sigma = cor_mats[[1]]), rmvnorm(500, sigma = cor_mats[[2]]))
+colnames(dat) <- LETTERS[1:10]
+rownames(dat) <- 1:1000
+
+# Create group data frame
+groups <- cbind(1:1000, c(rep(0, 500), rep(1, 500)))
+```
+
+Now, we've generated 1,000 samples (500 in each group) with no differences in mean. We've also converted the covariance matrix into the correlation matrices to convert all variances to unit variance (*i.e.* variances are 1), so there are no differences in variance. We can check this by calculating the mean eigengene and variance eigengene.
+
+```{r Covariance Eigengene Part 2 - Mean and Variance Eigengenes}
+# Mean eigengene
+eg <- calculateEigengene(dat)
+plot(
+  x = eg[, 1],
+  y = rnorm(1000),
+  pch = 16,
+  col = c('red', 'blue')[groups[, 2] + 1],
+  xlab = "Eigengene Value",
+  ylab = "",
+  yaxt = "n"
+)
+
+# Remove mean
+rescaled_dat <- demean(dat, groups)
+
+# Variance eigengene
+squared_mat <- generate_squared_matrix(rescaled_dat)
+var_eg <- calculateEigengene(squared_mat)
+plot(
+  x = var_eg[, 1],
+  y = rnorm(1000),
+  pch = 16,
+  col = c('red', 'blue')[groups[, 2] + 1],
+  xlab = "Eigengene Value",
+  ylab = "",
+  yaxt = "n"
+)
+```
+
+Notice that in both these examples, the eigengene correctly illustrates the lack of differences between the groups in terms of mean and variance.
+
+To capture the covariance difference, we will use an approach similar to the variance eigengene calculation. We will create observations of covariance by using the mean-removed observations and generating observations of covariance by taking the product of pairs of features. This utilizes the relationship that $Cov(X,Y) = E[XY] - E[X]E[Y]$. When $E[X] = E[Y] = 0$, the pairwise products become samples of covariance. The resulting matrix that we use as input for eigengene calculation is the pairwise interaction matrix, which is larger than the original input matrix.
+
+```{r Covariance Eigengene Part 3 - Calculation}
+# Generate pairwise matrix
+product_mat <- generate_interactions(rescaled_dat)
+
+# Covariance eigengene
+cor_eg <- calculateEigengene(product_mat)
+plot(
+  x = cor_eg[, 1],
+  y = rnorm(1000),
+  pch = 16,
+  col = c('red', 'blue')[groups[, 2] + 1],
+  xlab = "Eigengene Value",
+  ylab = "",
+  yaxt = "n"
+)
+```
+
+Using the covariance eigengene, we are able to visualize the difference in covariance since one group tends to one side and the other groups tends to the opposite side.
+
+There are a few important notes for the covariance eigengene. First, the covariance eigengene can also be the correlation eigengene when the variance is rescaled to 1. This can be done by setting the parameter, `scale = TRUE`, in the `demean` function. Second, the covariance eigengene will often require more observations to detect differences. This is due to the fact that we test across all pairwise interactions in the feature set. This can be combatted by specifying the specific interactions be tested in the feature set by providing the `interactions_df` parameter in the `generate_interactions` function.
+
+Let's demonstrate limiting the interactions
+
+```{r Covariance Eigengene Part 3 - Subsetting interactions}
+large_cor_diff <- abs(cor_mats[[1]] - cor_mats[[2]])
+large_cor_diff[lower.tri(large_cor_diff)] <- 0
+large_cor_diff_ind <- which(large_cor_diff > 0.6, arr.ind = T)
+diff_interactions <-
+  cbind(LETTERS[1:10][large_cor_diff_ind[, 1]], LETTERS[1:10][large_cor_diff_ind[, 2]])
+
+# Generate pairwise matrix from subset of interactions
+product_mat <-
+  generate_interactions(rescaled_dat, interactions_df = diff_interactions)
+
+# Covariance eigengene
+cor_eg <- calculateEigengene(product_mat)
+plot(
+  x = cor_eg[, 1],
+  y = rnorm(1000),
+  pch = 16,
+  col = c('red', 'blue')[groups[, 2] + 1],
+  xlab = "Eigengene Value",
+  ylab = "",
+  yaxt = "n"
+)
+```
+
+As seen in the plot, the relationship is still maintained, but there is less overlap between the two groups. This is because we reduced the feature space to only include features with larger covariance differences and removing those with smaller or no differences (*i.e.* eliminating noise). In practice, this is unknown, but limiting the interactions to those of potential interest will help boost power to detect differences.
+
+# Hypothesis Testing with Eigengenes
+
+We now know how to calculate eigengenes for mean, variance, and covariance. However, we need to quantify and statistically test the differences between each group's eigengene values.
+
+Let's look at a simple example using our first example for the mean eigengene.
+
+```{r Testing with the Eigengene Part 1 - Data Generation}
+set.seed(0)
+
+obs <- rbind(
+  sapply(1:10, function(x) {
+    rnorm(100, mean = x, sd = x)
+  }),
+  sapply(10:1, function(x) {
+    rnorm(100, mean = x, sd = x)
+  })
+)
+
+classes <- cbind(1:100,c(rep(0,100),rep(1,100)))
+
+# Calculate Eigengene
+eg <- calculateEigengene(obs)
+```
+
+Now that we have calculated the eigengene, we have turned our multivariate problem containing 10 features into a single, univariate feature. A variety of tests from fundamental statistics now become available to us for testing. In our example, we know the differences are related to which class/underlying model we generated them from. We will perform differential testing in a variety of ways between classes.
+
+```{r Testing with the Eigengene Part 2 - Hypothesis Testing}
+cor.test(eg[,1],classes[,2]) # Correlation Test
+t.test(eg[which(classes[,2] == 0),1],eg[which(classes[,2] == 1),1]) # Student t-test
+summary(lm(eg[,1] ~ as.factor(classes[,2]))) # Wald Test
+```
+
+Here, we run three tests, all of which clearly suggest that the eigengene displays mean differences between the two classes. While any of these test are valid, we tend to prefer the regression frameworks since it allows us to include other covariates and account for linear effects from them.
+
+While our tests are primarily designed for perform differential testing between two groups, multiple groups can be tested as well. Tests such as the Analysis of Variance (ANOVA) can be applied as well.
+

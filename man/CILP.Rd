@@ -28,20 +28,22 @@ library(mvtnorm)
 cov_mats <- rWishart(2, 10, diag(10))
 
 # Generate correlated data with means 1-10 and 10-1
-dat <- rbind(rmvnorm(100, mean = 1:10, sigma = cov_mats[, , 1]), rmvnorm(100, mean = 10:1, sigma = cov_mats[, , 2]))
+dat <- rbind(rmvnorm(100, mean = 1:10, sigma = cov_mats[, , 1]),
+ rmvnorm(100, mean = 10:1, sigma = cov_mats[, , 2]))
 colnames(dat) <- LETTERS[1:10]
+rownames(dat) <- 1:200
 
-# Create group vector
-groups <- c(rep(0, 100), rep(1, 100))
+# Create group data frame
+groups <- cbind(1:100,c(rep(0, 100), rep(1, 100)))
 
-# Remove mean from matrix
-centered_dat <- scale(dat, scale = FALSE)
-colMeans(centered_dat)
+# Remove mean and rescale matrix
+rescaled_dat <- demean(dat,groups,scale = TRUE)
+colMeans(rescaled_dat)
 
 # Generate pairwise matrix
-product_mat <- generate_all_interaction(centered_dat)
+product_mat <- generate_interactions(rescaled_dat)
 
 # Run CILP
-res <- CILP(product_mat, groups)
+res <- CILP(product_mat, groups[,2])
 
 }

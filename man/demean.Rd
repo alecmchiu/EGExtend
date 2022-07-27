@@ -52,3 +52,6 @@ demean_obs <- demean(obs, classes)
 colMeans(demean_obs[1:100, ])
 colMeans(demean_obs[101:200, ])
 }
+\seealso{
+\code{\link[base:scale]{base::scale()}}
+}

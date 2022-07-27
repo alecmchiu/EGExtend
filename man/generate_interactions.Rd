@@ -29,6 +29,9 @@ of features, where \emph{m} is the number of features in the input matrix.
 When using this function where the mean has been removed, the feature/column
 means become observations of covariance.
 }
+\details{
+The pairwise interaction matrix allows one to estimate covariance when paired with the demean function. This relies on the fact that \verb{Cov(X,Y) = E[XY]-E[X]E[Y]}, but by removing means, we eliminate the second term.
+}
 \examples{
 # Generate covariance matrix
 library(mvtnorm)
@@ -38,15 +41,24 @@ cov_mat <- rWishart(1, 10, diag(10))[, , 1]
 # Generate correlated data with means 1-10
 dat <- rmvnorm(100, mean = 1:10, sigma = cov_mat)
 colnames(dat) <- LETTERS[1:10]
+rownames(dat) <- 1:100
 
 # Remove mean from matrix
 centered_dat <- scale(dat, scale = FALSE)
 colMeans(centered_dat)
 
 # Generate pairwise matrix
-product_mat <- generate_all_interaction(centered_dat)
+product_mat <- generate_interactions(centered_dat)
 
 # Check if covariance estimates are close
-colMeans(product_mat)
-cov(dat)[1:7, 1:7]
+demean_est <- colSums(product_mat)/(nrow(product_mat)-1)
+
+samp_cov <- sapply(strsplit(colnames(product_mat),split="_"),function(x){cov(dat)[x[1],x[2]]})
+names(samp_cov) <- colnames(product_mat)
+
+head(demean_est)
+head(samp_cov)
+}
+\seealso{
+\code{\link[stats:cor]{stats::cov()}}
 }

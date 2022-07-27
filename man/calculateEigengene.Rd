@@ -4,16 +4,19 @@
 \alias{calculateEigengene}
 \title{Calculate eigengene}
 \usage{
-calculateEigengene(mat)
+calculateEigengene(matrix)
 }
 \arguments{
-\item{mat}{A matrix for which the eigengene is to be calculated.}
+\item{matrix}{A matrix for which the eigengene is to be calculated.}
 }
 \value{
 The eigengene of the input matrix.
 }
 \description{
 Calculates the eigengene for a given matrix. We use the \emph{irlba} package to efficiently calculate the eigengene using the Lanzcos algorithm. The eigengene is aligned to match the orientation of the input matrix and will retain the row names of the input matrix.
+}
+\details{
+The eigengene is canonically known as the first principal component. However, principal components are rotation-invariant, meaning that the result can be sometimes inverted (\emph{i.e. the results times -1}). We orient the eigengene to the input matrix by aligning the correlation between the eigengene and the vector of averages (\emph{row means}) of the input matrix.
 }
 \examples{
 # Generate data
@@ -31,4 +34,7 @@ eg <- calculateEigengene(obs)
 
 # Eigengene should reflect mean differences
 plot(eg, ylab = "Eigengene Value")
+}
+\seealso{
+\code{\link[irlba:irlba]{irlba::irlba()}}
 }
