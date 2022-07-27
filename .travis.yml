@@ -1,12 +1,13 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
-language: r
+language: R
 cache: packages
 jobs:
   include:
     - stage: "Build"
 r_packages:
   - covr
+  - mvtnorm
 
 after_success:
   - Rscript -e 'library(covr); codecov()'
