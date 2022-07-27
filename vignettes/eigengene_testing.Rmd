@@ -211,7 +211,7 @@ There are a few important notes for the covariance eigengene. First, the covaria
 Let's demonstrate limiting the interactions
 
 ```{r Covariance Eigengene Part 3 - Subsetting interactions}
-large_cor_diff <- abs(cor_mats[[1]] - cor_mats[[2]])
+large_cor_diff <- abs(cov2cor(cov_mats[,,1]) - cov2cor(cov_mats[,,1]))
 large_cor_diff[lower.tri(large_cor_diff)] <- 0
 large_cor_diff_ind <- which(large_cor_diff > 0.6, arr.ind = T)
 diff_interactions <-
