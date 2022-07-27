@@ -142,7 +142,7 @@ library(mvtnorm)
 cov_mats <- rWishart(2, 10, diag(10))
 
 # Convert to correlation matrix to remove variance differences
-cor_mats <- apply(cov_mats, 3, cov2cor, simplify = F)
+cor_mats <- base::apply(cov_mats, 3, cov2cor, simplify = FALSE)
 
 # Generate correlated data with means 1-10 and 10-1
 dat <-
