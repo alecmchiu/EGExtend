@@ -8,10 +8,10 @@ Imports:
     irlba,
     stats,
     utils,
-    Matrix
+    Matrix,
+    mvtnorm
 Suggests:
     knitr,
-    mvtnorm,
     rmarkdown,
     testthat (>= 3.0.0)
 Description: Functions that extend eigengene analysis to perform hypothesis 
