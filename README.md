@@ -18,7 +18,7 @@ Citation pending
 EGExtend can be installed from this GitHub repository:
 
 ```r
-devtools::install_github("alecmchiu/EGExtend",build_vignetttes=TRUE)
+devtools::install_github("alecmchiu/EGExtend",build_vignettes=TRUE)
 ```
 
 ## Getting Started
