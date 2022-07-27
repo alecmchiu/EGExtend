@@ -139,14 +139,11 @@ set.seed(0)
 library(mvtnorm)
 
 # Generate covariance matrices
-cov_mats <- rWishart(2, 10, diag(10))
-
-# Convert to correlation matrix to remove variance differences
-cor_mats <- base::apply(cov_mats, 3, cov2cor, simplify = FALSE)
+cov_mats <- stats::rWishart(2, 10, diag(10))
 
 # Generate correlated data with means 1-10 and 10-1
 dat <-
-  rbind(rmvnorm(500, sigma = cor_mats[[1]]), rmvnorm(500, sigma = cor_mats[[2]]))
+  rbind(rmvnorm(500, sigma = cov2cor(cov_mats[,,1])), rmvnorm(500, sigma = cov2cor(cov_mats[,,2])))
 colnames(dat) <- LETTERS[1:10]
 rownames(dat) <- 1:1000
 
