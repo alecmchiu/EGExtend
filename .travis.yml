@@ -2,12 +2,8 @@
 
 language: R
 cache: packages
-jobs:
-  include:
-    - stage: "Build"
 r_packages:
   - covr
-  - mvtnorm
 
 after_success:
   - Rscript -e 'library(covr); codecov()'
