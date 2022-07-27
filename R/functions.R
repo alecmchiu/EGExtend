@@ -1,4 +1,5 @@
 
+
 #' Remove class-specific mean from each class in matrix
 #'
 #' Remove the class-specific mean for each feature/column.
@@ -43,17 +44,17 @@
 #' # Check if means are near 0 for each class
 #' colMeans(demean_obs[1:100, ])
 #' colMeans(demean_obs[101:200, ])
-demean <- function(matrix, class_df, scale=FALSE) {
-  if (is.null(ncol(class_df))){
+demean <- function(matrix, class_df, scale = FALSE) {
+  if (is.null(ncol(class_df))) {
     stop(sprintf("Class data frame does not have any columns?"))
   }
-  if (ncol(class_df) < 2){
+  if (ncol(class_df) < 2) {
     stop(sprintf("Class data frame does not conform to specifications."))
   }
   mat2 <- matrix
   for (each in unique(class_df[, 2])) {
     ids <- subset(class_df, class_df[, 2] == each)[, 1]
-    mat2[ids, ] <- scale(mat2[ids, ], scale = scale)
+    mat2[ids,] <- scale(mat2[ids,], scale = scale)
   }
   return(mat2)
 }
@@ -108,28 +109,40 @@ demean <- function(matrix, class_df, scale=FALSE) {
 #'
 #' head(demean_est)
 #' head(samp_cov)
-generate_interactions <- function(matrix, delimiter = "_", interactions_df = NA) {
-  if (is.null(colnames(matrix))){
-    stop(sprintf("Column names must be set."))
+generate_interactions <-
+  function(matrix,
+           delimiter = "_",
+           interactions_df = NA) {
+    if (is.null(colnames(matrix))) {
+      stop(sprintf("Column names must be set."))
+    }
+    if (is.null(rownames(matrix))) {
+      stop(sprintf("Row names must be set."))
+    }
+    if (all(is.na(interactions_df))) {
+      res <-
+        do.call(cbind, utils::combn(
+          colnames(matrix),
+          2,
+          FUN = function(x) {
+            list(stats::setNames(
+              data.frame(matrix[, x[1]] * matrix[, x[2]]),
+              paste(x, collapse = delimiter)
+            ))
+          }
+        ))
+    }
+    else{
+      res <-
+        apply(interactions_df, 1, function(x) {
+          matrix[, x[1]] * matrix[, x[2]]
+        })
+      rownames(res) <- rownames(matrix)
+      colnames(res) <-
+        apply(interactions_df, 1, paste0, collapse = delimiter)
+    }
+    return(res)
   }
-  if (is.null(rownames(matrix))){
-    stop(sprintf("Row names must be set."))
-  }
-  if (all(is.na(interactions_df))){
-    res <- do.call(cbind, utils::combn(colnames(matrix), 2, FUN = function(x) {
-      list(stats::setNames(
-        data.frame(matrix[, x[1]] * matrix[, x[2]]),
-        paste(x, collapse = delimiter)
-      ))
-    }))
-  }
-  else{
-    res <- apply(interactions_df,1,function(x){matrix[,x[1]] * matrix[,x[2]]})
-    rownames(res) <- rownames(matrix)
-    colnames(res) <- apply(interactions_df,1,paste0,collapse=delimiter)
-  }
-  return(res)
-}
 
 #' Generate squared matrix
 #'
@@ -137,7 +150,7 @@ generate_interactions <- function(matrix, delimiter = "_", interactions_df = NA)
 #' matrix features have been squared. The new matrix will retain the dimensions
 #' of the input matrix. On a centered matrix, this function will turn the
 #' observations into observations of variance.
-#' 
+#'
 #' #' Using the squared matrix with the demean function allows one to estimate variance. This relies on the fact that `Var(X) = E[X^2]-E[X]^2`, but by removing means, we eliminate the second term.
 #'
 #' @param matrix A matrix with observations (e.g. individuals) as rows and features
@@ -164,7 +177,7 @@ generate_interactions <- function(matrix, delimiter = "_", interactions_df = NA)
 #' apply(obs, 2, var)
 generate_squared_matrix <- function(matrix) {
   return(apply(matrix, 2, function(x) {
-    x^2
+    x ^ 2
   }))
 }
 
@@ -206,7 +219,7 @@ generate_squared_matrix <- function(matrix) {
 #'
 #' # Run CILP
 #' res <- CILP(product_mat, groups[,2])
-#' 
+#'
 CILP <- function(prod_mat, groupings) {
   pvals <- apply(prod_mat, 2, function(x) {
     ctest <- stats::cor.test(scale(x), groupings)
@@ -218,7 +231,7 @@ CILP <- function(prod_mat, groupings) {
 }
 
 #' Calculate eigengene
-#' 
+#'
 #' Calculates the eigengene for a given matrix. We use the \emph{irlba} package to efficiently calculate the eigengene using the Lanzcos algorithm. The eigengene is aligned to match the orientation of the input matrix and will retain the row names of the input matrix.
 #'
 #' The eigengene is canonically known as the first principal component. However, principal components are rotation-invariant, meaning that the result can be sometimes inverted (\emph{i.e. the results times -1}). We orient the eigengene to the input matrix by aligning the correlation between the eigengene and the vector of averages (\emph{row means}) of the input matrix.
